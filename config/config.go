@@ -8,13 +8,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
-	Version     string
-	ServiceName string
-	HttpPort    int
-}
+var configrations *Config
 
-var configrations Config
+type Config struct {
+	Version      string
+	ServiceName  string
+	HttpPort     int
+	JwtSecretkey string
+}
 
 func loadConfig() {
 	err := godotenv.Load()
@@ -50,14 +51,25 @@ func loadConfig() {
 		os.Exit(1)
 	}
 
-	configrations = Config{
-		Version:     version,
-		ServiceName: serviceName,
-		HttpPort:    int(port),
+	jwtSecretkey := os.Getenv("JWT_SECRET_KEY")
+
+	if jwtSecretkey == "" {
+		fmt.Println("Jwt secret key is required")
+		os.Exit(1)
+	}
+
+	configrations = &Config{
+		Version:      version,
+		ServiceName:  serviceName,
+		HttpPort:     int(port),
+		JwtSecretkey: jwtSecretkey,
 	}
 }
 
-func GetConfig() Config {
-	loadConfig()
+func GetConfig() *Config {
+	if configrations == nil {
+		loadConfig()
+	}
+
 	return configrations
 }

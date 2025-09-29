@@ -15,6 +15,7 @@ func NewManager() *Manager {
 }
 
 func (mngr *Manager) Use(middlewares ...Middleware) {
+	
 	mngr.globalMiddlewares = append(mngr.globalMiddlewares, middlewares...)
 }
 
