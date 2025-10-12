@@ -1,7 +1,7 @@
 package product
 
 import (
-	"ecommerce/repo"
+	"ecommerce/domain"
 	"ecommerce/util"
 	"encoding/json"
 	"fmt"
@@ -13,7 +13,7 @@ type ReqUpdateProduct struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	ImagUrl     string  `json:"imageUrl"`
+	ImageUrl    string  `json:"imageUrl"`
 }
 
 func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
@@ -35,12 +35,12 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		util.SendError(w, http.StatusBadRequest, "Invalid req body")
 	}
 
-	_, err = h.productRepo.Update(repo.Product{
+	_, err = h.svc.Update(domain.Product{
 		ID:          pId,
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
-		ImagUrl:     req.ImagUrl,
+		ImageUrl:    req.ImageUrl,
 	})
 	if err != nil {
 		util.SendError(w, http.StatusInternalServerError, "Internal Server Error")

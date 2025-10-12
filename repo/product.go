@@ -1,117 +1,114 @@
 package repo
 
-type Product struct {
-	ID          int     `json:"id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price"`
-	ImagUrl     string  `json:"imageUrl"`
-}
+import (
+	"database/sql"
+	"ecommerce/domain"
+	"ecommerce/product"
+
+	"github.com/jmoiron/sqlx"
+)
 
 type ProductRepo interface {
-	Create(p Product) (*Product, error)
-	Get(productId int) (*Product, error)
-	List() ([]*Product, error)
-	Update(product Product) (*Product, error)
-	Delete(productId int) error
+	product.ProductRepo // Embedding
 }
 
 type productRepo struct {
-	productList []*Product
+	db *sqlx.DB
 }
 
 // constructor or constructor function
-func NewProductRepo() ProductRepo {
-	repo := &productRepo{}
-
-	generateInitialProduct(repo)
-	return repo
+func NewProductRepo(db *sqlx.DB) ProductRepo {
+	return &productRepo{
+		db: db,
+	}
 }
 
-func (r *productRepo) Create(p Product) (*Product, error) {
-	p.ID = len(r.productList) + 1
-	r.productList = append(r.productList, &p)
+func (r *productRepo) Create(p domain.Product) (*domain.Product, error) {
+	query := `
+		INSERT INTO products (
+			title, 
+			description, 
+			price, 
+			img_url
+		) VALUES (
+			$1, 
+			$2, 
+			$3, 
+			$4
+		) RETURNING id`
+
+	row := r.db.QueryRow(query, p.Title, p.Description, p.Price, p.ImageUrl)
+	err := row.Scan(&p.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &p, nil
 }
 
-func (r *productRepo) Get(productId int) (*Product, error) {
-	for _, product := range r.productList {
-		if product.ID == productId {
-			return product, nil
+func (r *productRepo) Get(id int) (*domain.Product, error) {
+	var p domain.Product
+	query := `
+		SELECT 
+			id, 
+			title, 
+			description, 
+			price, 
+			img_url
+		FROM products 
+		WHERE id=$1
+	`
+	err := r.db.Get(&p, query, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
+		return nil, err
 	}
+	return &p, nil
+}
+func (r *productRepo) List() ([]*domain.Product, error) {
+	var prdList []*domain.Product
+	query := `
+		SELECT 
+			id, 
+			title, 
+			description, 
+			price, 
+			img_url
+		FROM products 
+	`
+	err := r.db.Select(&prdList, query)
 
-	return nil, nil
-}
-func (r *productRepo) List() ([]*Product, error) {
-	return r.productList, nil
-}
-func (r *productRepo) Update(product Product) (*Product, error) {
-	for idx, p := range r.productList {
-		if p.ID == product.ID {
-			r.productList[idx] = &product
-		}
+	if err != nil {
+		return nil, err
 	}
-	return &product, nil
+	return prdList, nil
 }
-func (r *productRepo) Delete(productId int) error {
-	var tempList []*Product
-	for _, p := range r.productList {
-		if p.ID == productId {
-			tempList = append(tempList, p)
-		}
+func (r *productRepo) Update(p domain.Product) (*domain.Product, error) {
+	query := `
+		UPDATE products SET
+			title=$1,
+			description=$2,
+			price=$3,
+			img_url=$4,
+		WHERE id=$5
+	`
+	row := r.db.QueryRow(query, p.Title, p.Description, p.Price, p.ImageUrl)
+	err := row.Scan()
+	if err != nil {
+		return nil, err
 	}
-	r.productList = tempList
+	return &p, nil
+}
+func (r *productRepo) Delete(id int) error {
+	query := `
+		DELETE FROM products 
+		WHERE id=$1
+	`
+	_, err := r.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
 	return nil
-}
-
-func generateInitialProduct(r *productRepo) {
-	prd1 := &Product{
-		ID:          1,
-		Title:       "Orange",
-		Description: "Orange is red, I love orange",
-		Price:       100.00,
-		ImagUrl:     "https://upload.wikimedia.org/wikipedia/commons/e/e3/Oranges_-_whole-halved-segment.jpg",
-	}
-	prd2 := &Product{
-		ID:          2,
-		Title:       "Apple",
-		Description: "Apple is green, I hate apple",
-		Price:       80.00,
-		ImagUrl:     "https://www.collinsdictionary.com/images/full/apple_158989157.jpg",
-	}
-	prd3 := &Product{
-		ID:          3,
-		Title:       "Banana",
-		Description: "Banana is yellow, I love banana",
-		Price:       15.00,
-		ImagUrl:     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMFueRcp7oghbY4-YTxJQmhfLrQpiD0Q_DLw&s",
-	}
-	prd4 := &Product{
-		ID:          4,
-		Title:       "Grapes",
-		Description: "grapes is bichi, hahahha",
-		Price:       100.00,
-		ImagUrl:     "https://upload.wikimedia.org/wikipedia/commons/e/e3/Oranges_-_whole-halved-segment.jpg",
-	}
-	prd5 := &Product{
-		ID:          5,
-		Title:       "Watermelon",
-		Description: "Watermelon is pure red, I love Watermelon too much",
-		Price:       500.00,
-		ImagUrl:     "https://cdn.mos.cms.futurecdn.net/v2/t:0,l:200,cw:1200,ch:1200,q:80,w:1200/XenViG9cC4EdGupeibtKa5.jpg",
-	}
-	prd6 := &Product{
-		ID:          6,
-		Title:       "Mango",
-		Description: "Mango is my favourite, I love mango",
-		Price:       500.00,
-		ImagUrl:     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSe4OzPMUZFtQ-TJxNf5k37h07WhwkJjgkezQ&s",
-	}
-	r.productList = append(r.productList, prd1)
-	r.productList = append(r.productList, prd2)
-	r.productList = append(r.productList, prd3)
-	r.productList = append(r.productList, prd4)
-	r.productList = append(r.productList, prd5)
-	r.productList = append(r.productList, prd6)
 }

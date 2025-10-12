@@ -1,7 +1,7 @@
 package product
 
 import (
-	"ecommerce/repo"
+	"ecommerce/domain"
 	"ecommerce/util"
 	"encoding/json"
 	"fmt"
@@ -12,7 +12,7 @@ type ReqCreateProduct struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	ImagUrl     string  `json:"imageUrl"`
+	ImageUrl    string  `json:"imageUrl"`
 }
 
 func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -26,11 +26,11 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createProduct, err := h.productRepo.Create(repo.Product{
+	createProduct, err := h.svc.Create(domain.Product{
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
-		ImagUrl:     req.ImagUrl,
+		ImageUrl:    req.ImageUrl,
 	})
 	if err != nil {
 		util.SendError(w, http.StatusInternalServerError, "Internal Server Error")
